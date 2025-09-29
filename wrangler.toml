@@ -1,0 +1,10 @@
+name = "nphies-assistant"
+compatibility_date = "2024-10-01"
+pages_build_output_dir = "./frontend/dist"
+
+[build]
+command = "npm --prefix frontend install && npm --prefix frontend run build"
+
+[pages]
+project_name = "nphies-assistant"
+functions_directory = "./workers/src"

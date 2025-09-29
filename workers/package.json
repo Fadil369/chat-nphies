@@ -1,0 +1,17 @@
+{
+  "name": "nphies-workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "itty-router": "^4.0.30"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240529.0",
+    "typescript": "^5.5.3",
+    "wrangler": "^3.53.1"
+  }
+}

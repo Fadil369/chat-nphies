@@ -1,0 +1,9 @@
+{
+  "name": "NPHIES Assistant",
+  "short_name": "NPHIES",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00FFE5",
+  "icons": []
+}
