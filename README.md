@@ -5,7 +5,7 @@ Mobile-first, bilingual assistant that orchestrates the full NPHIES workflow on 
 ## Architecture
 
 - **React + Vite + Tailwind CSS** front-end served from Cloudflare Pages (`frontend/`).
-- **Cloudflare Pages Functions (Workers)** handle mutual TLS signed calls to NPHIES and proxy requests to Ollama (`workers/`). Guardrail prompts, locale-aware metadata, and bounded history ensure structured bilingual responses.
+- **Cloudflare Pages Functions (Workers)** handle mutual TLS signed calls to NPHIES and proxy requests to Ollama (`functions/api/*` importing shared logic from `workers/src`). Guardrail prompts, locale-aware metadata, and bounded history ensure structured bilingual responses.
 - **Responsive assistant overlay** brings the chat copilot into a full-screen mobile view with tone controls and trace identifiers for troubleshooting.
 - **Secrets and Certificates** managed through `wrangler secret` bindings; no secrets are committed to the repo.
 - **GitHub Actions** deploy both the static site and Worker edge API on push to `main`.
@@ -49,7 +49,32 @@ Push to `main` to trigger `.github/workflows/deploy.yml`. Configure the followin
 - `CF_API_TOKEN`
 - `CF_ACCOUNT_ID`
 
-Secrets for the Worker (`NPHIES_CLIENT_CERT`, `NPHIES_CLIENT_KEY`, `NPHIES_API_BASE`, `OLLAMA_API_KEY`) must be set using `wrangler secret put` in the deployment environment.
+### Manual Cloudflare Pages deployment
+
+1. Build the frontend bundle (wrangler will reuse `frontend/dist` if it already exists):
+
+   ```bash
+   npm run build --prefix frontend
+   ```
+
+2. Deploy to Cloudflare Pages. This compiles the bundled Pages Functions from `functions/api/*` alongside the static assets:
+
+   ```bash
+   npx wrangler pages deploy
+   ```
+
+3. Set production environment variables for the Pages project (`Settings → Environment Variables` within the Cloudflare dashboard) or via the CLI:
+
+   ```bash
+   npx wrangler pages secret put NPHIES_CLIENT_CERT
+   npx wrangler pages secret put NPHIES_CLIENT_KEY
+   npx wrangler pages secret put NPHIES_API_BASE
+   npx wrangler pages secret put OLLAMA_API_KEY
+   npx wrangler pages secret put OLLAMA_API_BASE   # optional override
+   npx wrangler pages secret put OLLAMA_MODEL      # optional override
+   ```
+
+   These secrets hydrate the shared `workers/src` logic that powers `/api/ollama` and `/api/nphies/*` on Pages.
 
 ## Security Checklist
 
