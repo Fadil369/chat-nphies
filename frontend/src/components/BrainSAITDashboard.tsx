@@ -99,7 +99,7 @@ export const BrainSAITDashboard: React.FC = () => {
       const response = await fetch('/api/brainsait/hospitals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filter: {} })
+        body: JSON.stringify({})
       });
       
       if (!response.ok) throw new Error('Failed to load hospitals');
@@ -220,6 +220,7 @@ export const BrainSAITDashboard: React.FC = () => {
           onChange={(e) => setSelectedHospital(e.target.value)}
           className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
+          <option value="">Select a hospital...</option>
           {hospitals.map((hospital) => (
             <option key={hospital.hospital_id} value={hospital.hospital_id}>
               {hospital.name} - {hospital.location.city}

@@ -21,6 +21,7 @@ ANTHROPIC_API_KEY=sk-ant-api03-[your-key-here]
 # Required - Get from https://cloud.mongodb.com/
 MONGODB_API_KEY=[your-mongodb-data-api-key]
 MONGODB_API_URL=https://data.mongodb-api.com/app/data-kmxgp/endpoint/data/v1
+MONGODB_PUBLIC_KEY=[your-mongodb-public-key]
 
 # Optional - Use defaults if not specified
 ANTHROPIC_API_BASE=https://api.anthropic.com
