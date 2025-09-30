@@ -1,4 +1,4 @@
-import { handleOllama } from "../../workers/src/ollama";
+import { handleClaude } from "../../workers/src/claude";
 import type { Env } from "../../workers/src";
 
 type RequestContext = {
@@ -25,9 +25,9 @@ export const onRequest = async ({ request, env }: RequestContext) => {
 	try {
 		body = await request.json();
 	} catch (error) {
-		console.error("Failed to parse Ollama request body", error);
+		console.error("Failed to parse Claude request body", error);
 		return jsonError("Invalid JSON body", 400);
 	}
 
-	return handleOllama(body, env);
+	return handleClaude(body, env);
 };

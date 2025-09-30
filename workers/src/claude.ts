@@ -1,6 +1,6 @@
 import { Env } from "./index";
 
-type ChatRole = "system" | "user" | "assistant" | string;
+type ChatRole = "system" | "user" | "assistant";
 
 type ChatMessage = {
   role: ChatRole;
@@ -38,13 +38,14 @@ type ValidatedRequest = {
   traceId: string;
 };
 
-const DEFAULT_MODEL = "llama3.1-8b-instruct";
-const DEFAULT_ENDPOINT = "https://api.ollama.com";
+const DEFAULT_MODEL = "claude-3-5-sonnet-20241022";
+const DEFAULT_ENDPOINT = "https://api.anthropic.com";
 const DEFAULT_OPTIONS: ChatOptions = {
-  temperature: 0.2,
-  top_p: 0.9
+  temperature: 0.3,
+  top_p: 0.9,
+  max_tokens: 4096
 };
-const MAX_MESSAGES = 16;
+const MAX_MESSAGES = 20;
 
 class WorkerError extends Error {
   constructor(message: string, public status = 400) {
@@ -53,21 +54,22 @@ class WorkerError extends Error {
   }
 }
 
-export async function handleOllama(body: unknown, env: Env): Promise<Response> {
+export async function handleClaude(body: unknown, env: Env): Promise<Response> {
   try {
-    if (!env.OLLAMA_API_KEY) {
-      throw new WorkerError("Missing Ollama API key", 500);
+    if (!env.ANTHROPIC_API_KEY) {
+      throw new WorkerError("Missing Anthropic API key", 500);
     }
 
     const request = validateRequest(body, env);
     const payload = buildPayload(request);
-    const endpoint = buildEndpoint(env.OLLAMA_API_BASE);
+    const endpoint = buildEndpoint(env.ANTHROPIC_API_BASE);
 
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.OLLAMA_API_KEY}`
+        "x-api-key": env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify(payload)
     });
@@ -77,7 +79,7 @@ export async function handleOllama(body: unknown, env: Env): Promise<Response> {
     if (!response.ok) {
       const message = (data as { error?: { message?: string }; message?: string })?.error?.message ??
         (data as { message?: string })?.message ??
-        "Upstream Ollama request failed";
+        "Upstream Claude request failed";
       throw new WorkerError(message, response.status);
     }
 
@@ -91,8 +93,8 @@ export async function handleOllama(body: unknown, env: Env): Promise<Response> {
       return jsonResponse({ message: error.message }, error.status);
     }
 
-    console.error("Unexpected Ollama worker failure", error);
-    return jsonResponse({ message: "Unexpected error while contacting Ollama" }, 502);
+    console.error("Unexpected Claude worker failure", error);
+    return jsonResponse({ message: "Unexpected error while contacting Claude" }, 502);
   }
 }
 
@@ -113,7 +115,7 @@ function validateRequest(body: unknown, env: Env): ValidatedRequest {
   const options = sanitizeOptions(payload.options);
   const model = typeof payload.model === "string" && payload.model.trim().length > 0
     ? payload.model.trim()
-    : env.OLLAMA_MODEL ?? DEFAULT_MODEL;
+    : env.CLAUDE_MODEL ?? DEFAULT_MODEL;
 
   const request: ValidatedRequest = {
     model,
@@ -131,8 +133,8 @@ function sanitizeMessages(messages: ChatMessage[]): ChatMessage[] {
   return messages
     .filter((msg): msg is ChatMessage => typeof msg?.content === "string" && typeof msg?.role === "string")
     .map((msg) => ({
-      role: msg.role,
-      content: msg.content
+      role: msg.role as ChatRole,
+      content: msg.content.trim()
     }))
     .slice(-MAX_MESSAGES);
 }
@@ -143,9 +145,9 @@ function sanitizeOptions(options: ChatOptions | undefined): ChatOptions {
   }
 
   const sanitized: ChatOptions = { ...DEFAULT_OPTIONS };
-  if (typeof options.temperature === "number") sanitized.temperature = clamp(options.temperature, 0, 1.5);
+  if (typeof options.temperature === "number") sanitized.temperature = clamp(options.temperature, 0, 1);
   if (typeof options.top_p === "number") sanitized.top_p = clamp(options.top_p, 0, 1);
-  if (typeof options.max_tokens === "number") sanitized.max_tokens = Math.max(64, Math.min(options.max_tokens, 4096));
+  if (typeof options.max_tokens === "number") sanitized.max_tokens = Math.max(256, Math.min(options.max_tokens, 8192));
   return sanitized;
 }
 
@@ -179,32 +181,67 @@ function enforceLimit(messages: ChatMessage[]): ChatMessage[] {
 }
 
 function buildSystemPrompt(metadata: ChatMetadata | undefined): string {
-  const base = `You are NPHIES Edge Copilot. Guide the user through Saudi NPHIES Taameen workflows. ` +
-    `Ask clarifying questions if any identifiers are missing before generating payloads.`;
+  const base = `You are NPHIES Edge Assistant powered by BrainSAIT, an expert AI helper for Saudi Arabia's National Platform for Health Information Exchange (NPHIES) workflows. You have access to real healthcare data and AI insights to provide enhanced assistance.
 
-  const structured = `Whenever possible, include a compact JSON snippet with the fields intent, patientId, coverageId, claimId, ` +
-    `recommendedEndpoint, and nextSteps. If information is unavailable, leave the field as null.`;
+**Core Capabilities:**
+1. **Eligibility Verification**: Creating EligibilityRequest FHIR payloads with real patient data validation
+2. **Claims Processing**: Generating Claim FHIR resources using AI predictions and historical patterns
+3. **Payment Management**: Handling PaymentNotice and PaymentReconciliation with cost optimization
+4. **FHIR Compliance**: Ensuring all generated JSON follows NPHIES FHIR R4 specifications
+5. **AI-Powered Insights**: Leveraging BrainSAIT database for intelligent recommendations
 
-  const locale = metadata?.locale ? describeLocale(metadata.locale) : "Respond in the user's language.";
-  const intent = metadata?.intent ? `Primary intent: ${String(metadata.intent)}.` : undefined;
-  const schema = metadata?.schemaHint ? `Follow this schema strictly: ${metadata.schemaHint}.` : undefined;
+**BrainSAIT Integration:**
+- Access to real hospital data, patient records, and AI model predictions
+- Vision 2030 compliance metrics and digital maturity assessments  
+- AI-powered risk scoring and cost estimation for claims
+- Historical patterns and fraud detection capabilities
+
+**Response Format:**
+Always include a structured JSON snippet when generating FHIR payloads:
+\`\`\`json
+{
+  "intent": "eligibility|claim|payment|audit",
+  "patientId": "patient_identifier",
+  "coverageId": "coverage_identifier", 
+  "claimId": "claim_identifier_if_applicable",
+  "recommendedEndpoint": "/api/endpoint/path",
+  "nextSteps": ["step1", "step2", "step3"],
+  "aiInsights": {
+    "riskScore": 0.85,
+    "predictedCost": 1200.50,
+    "approvalLikelihood": 0.92
+  },
+  "fhirPayload": { /* actual FHIR resource */ }
+}
+\`\`\`
+
+**Enhanced Guidelines:**
+- Leverage BrainSAIT patient data when available for personalized recommendations
+- Include AI-powered risk assessments and cost predictions
+- Reference Vision 2030 goals and hospital digital maturity levels
+- Use historical patterns for approval likelihood estimation
+- Provide proactive fraud detection insights`;
+
+  const locale = metadata?.locale ? describeLocale(metadata.locale) : "Respond in the user's preferred language.";
+  const intent = metadata?.intent ? `Current workflow focus: ${String(metadata.intent)}.` : undefined;
+  const schema = metadata?.schemaHint ? `Schema requirements: ${metadata.schemaHint}.` : undefined;
   const context = metadata?.context ? formatContext(metadata.context) : undefined;
 
-  return [base, structured, locale, intent, schema, context].filter(Boolean).join("\n\n");
+  return [base, locale, intent, schema, context].filter(Boolean).join("\n\n");
 }
 
 function describeLocale(locale: string): string {
   if (locale.toLowerCase().startsWith("ar")) {
-    return "Respond in Modern Standard Arabic unless referencing code identifiers.";
+    return "Respond in Modern Standard Arabic, but keep technical terms and code identifiers in English.";
   }
   if (locale.toLowerCase().startsWith("en")) {
-    return "Respond in English and use short, actionable sentences.";
+    return "Respond in clear, professional English with technical precision.";
   }
-  return `Match the user's locale (${locale}).`;
+  return `Respond in the user's locale (${locale}) while keeping technical terms in English.`;
 }
 
 function formatContext(context: Record<string, unknown>): string {
-  return `Reference context (do not restate identifiers unnecessarily):\n${JSON.stringify(context, null, 2)}`;
+  return `Current conversation context:\n${JSON.stringify(context, null, 2)}`;
 }
 
 function buildPayload(request: ValidatedRequest) {
@@ -212,17 +249,13 @@ function buildPayload(request: ValidatedRequest) {
     model: request.model,
     messages: request.messages,
     stream: request.stream,
-    metadata: {
-      ...request.metadata,
-      traceId: request.traceId
-    },
-    options: request.options
+    ...request.options
   };
 }
 
 function buildEndpoint(base: string | undefined): string {
   const origin = base && base.trim().length > 0 ? base.trim() : DEFAULT_ENDPOINT;
-  return new URL("/v1/chat/completions", origin).toString();
+  return new URL("/v1/messages", origin).toString();
 }
 
 async function parseResponseBody(response: Response): Promise<unknown> {
@@ -233,7 +266,7 @@ async function parseResponseBody(response: Response): Promise<unknown> {
     return JSON.parse(text);
   } catch (error) {
     return {
-      message: "Failed to parse Ollama response",
+      message: "Failed to parse Claude response",
       raw: text,
       error: (error as Error).message
     };
@@ -245,7 +278,12 @@ function jsonResponse(body: unknown, status = 200): Response {
     status,
     headers: {
       "Content-Type": "application/json",
-      "Cache-Control": "no-store"
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "1; mode=block",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
     }
   });
 }

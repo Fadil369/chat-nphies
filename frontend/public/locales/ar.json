@@ -95,5 +95,19 @@
   "claim_amount_submitted": "تم إرسال {{amount}} ريال",
   "assistant_title_anchor": "المساعد",
   "enter_queue": "تمت الجدولة",
-  "claim_followup": "جهز المستندات المساندة"
+  "claim_followup": "جهز المستندات المساندة",
+  "loading": "جارٍ التحميل...",
+  "pwa_update_available": "يتوفر تحديث",
+  "pwa_update_description": "إصدار جديد من مساعد نفيس جاهز للتثبيت.",
+  "pwa_update_now": "حدث الآن",
+  "pwa_update_later": "لاحقاً",
+  "pwa_install_available": "تثبيت التطبيق",
+  "pwa_install_description": "أضف مساعد نفيس إلى الشاشة الرئيسية للوصول السريع.",
+  "pwa_install_now": "تثبيت",
+  "pwa_install_dismiss": "ليس الآن",
+  "pwa_offline_mode": "أنت غير متصل. قد تكون بعض الميزات محدودة.",
+  "skip_to_main": "الانتقال إلى المحتوى الرئيسي",
+  "skip_to_navigation": "الانتقال إلى التنقل",
+  "main_navigation": "التنقل الرئيسي",
+  "main_content_area": "منطقة المحتوى الرئيسي"
 }

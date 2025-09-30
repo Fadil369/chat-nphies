@@ -4,9 +4,13 @@ import { useTranslation } from "react-i18next";
 import Dashboard from "./pages/Dashboard";
 import Eligibility from "./pages/Eligibility";
 import Claim from "./pages/Claim";
+import BrainSAITDashboard from "./components/BrainSAITDashboard";
 import { ChatBot } from "./components/ChatBot";
 import { LanguageToggle } from "./components/LanguageToggle";
 import { ConsentBanner } from "./components/ConsentBanner";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { PWAManager } from "./components/PWAManager";
+import { useServiceWorker } from "./hooks/useServiceWorker";
 
 const navItemClass = ({ isActive }: { isActive: boolean }) =>
   `px-3 py-2 rounded-md text-sm font-medium ${isActive ? "bg-primary text-gray-900" : "text-gray-400 hover:text-white"}`;
@@ -14,12 +18,18 @@ const navItemClass = ({ isActive }: { isActive: boolean }) =>
 export default function App() {
   const { i18n, t } = useTranslation();
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const { register } = useServiceWorker();
 
   useEffect(() => {
     const dir = i18n.language === "ar" ? "rtl" : "ltr";
     document.documentElement.lang = i18n.language;
     document.documentElement.dir = dir;
   }, [i18n.language]);
+
+  // Register service worker on mount
+  useEffect(() => {
+    register();
+  }, [register]);
 
   useEffect(() => {
     document.body.style.overflow = assistantOpen ? "hidden" : "";
@@ -54,13 +64,28 @@ export default function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
-        <header className="border-b border-gray-800 bg-gray-950/70 backdrop-blur">
+        {/* Skip Links */}
+        <a href="#main-content" className="skip-link">
+          {t("skip_to_main")}
+        </a>
+        <a href="#navigation" className="skip-link">
+          {t("skip_to_navigation")}
+        </a>
+        <header 
+          className="border-b border-gray-800 bg-gray-950/70 backdrop-blur"
+          role="banner"
+        >
           <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3 md:flex-row md:items-center md:justify-between">
             <div>
               <span className="font-display text-xl tracking-widest text-primary">NPHIES.AI</span>
               <p className="mt-1 text-xs text-gray-400 md:text-sm">{t("tagline")}</p>
             </div>
-            <nav className="flex flex-wrap items-center gap-2">
+            <nav 
+              id="navigation"
+              className="flex flex-wrap items-center gap-2"
+              role="navigation"
+              aria-label={t("main_navigation")}
+            >
               <NavLink to="/" className={navItemClass} end>
                 {t("nav_dashboard")}
               </NavLink>
@@ -69,6 +94,9 @@ export default function App() {
               </NavLink>
               <NavLink to="/claim" className={navItemClass}>
                 {t("nav_claim")}
+              </NavLink>
+              <NavLink to="/brainsait" className={navItemClass}>
+                🧠 BrainSAIT
               </NavLink>
               <LanguageToggle />
               <button
@@ -83,22 +111,37 @@ export default function App() {
             </nav>
           </div>
         </header>
-        <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 grid gap-6 lg:grid-cols-[1fr_360px]">
-          <section className="rounded-xl border border-gray-800 bg-gray-900/60 backdrop-blur p-6 shadow-lg">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/eligibility" element={<Eligibility />} />
-              <Route path="/claim" element={<Claim />} />
-            </Routes>
+        <main 
+          id="main-content"
+          className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 grid gap-6 lg:grid-cols-[1fr_360px]"
+          role="main"
+          tabIndex={-1}
+        >
+          <section 
+            className="rounded-xl border border-gray-800 bg-gray-900/60 backdrop-blur p-6 shadow-lg"
+            role="region"
+            aria-label={t("main_content_area")}
+          >
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/eligibility" element={<Eligibility />} />
+                <Route path="/claim" element={<Claim />} />
+                <Route path="/brainsait" element={<BrainSAITDashboard />} />
+              </Routes>
+            </ErrorBoundary>
           </section>
           <aside
             className="hidden h-full rounded-xl border border-gray-800 bg-gray-900/60 backdrop-blur p-4 shadow-lg lg:block"
             aria-label={t("assistant_title")}
           >
-            <ChatBot />
+            <ErrorBoundary>
+              <ChatBot />
+            </ErrorBoundary>
           </aside>
         </main>
         <ConsentBanner />
+        <PWAManager />
       </div>
       {assistantOpen ? (
         <div className="fixed inset-0 z-50 flex flex-col bg-gray-950/95 backdrop-blur lg:hidden" role="dialog" aria-modal="true">
@@ -117,7 +160,9 @@ export default function App() {
           </div>
           <div className="flex-1 overflow-hidden px-2 pb-4">
             <div className="h-full rounded-xl border border-gray-800 bg-gray-900/70 p-3 shadow-inner">
-              <ChatBot />
+              <ErrorBoundary>
+                <ChatBot />
+              </ErrorBoundary>
             </div>
           </div>
         </div>

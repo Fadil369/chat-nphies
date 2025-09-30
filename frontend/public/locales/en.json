@@ -95,5 +95,19 @@
   "claim_amount_submitted": "Submitted {{amount}} SAR",
   "assistant_title_anchor": "Assistant",
   "enter_queue": "Queued",
-  "claim_followup": "Prepare supporting documents"
+  "claim_followup": "Prepare supporting documents",
+  "loading": "Loading...",
+  "pwa_update_available": "Update Available",
+  "pwa_update_description": "A new version of NPHIES Assistant is ready to install.",
+  "pwa_update_now": "Update Now",
+  "pwa_update_later": "Later",
+  "pwa_install_available": "Install App",
+  "pwa_install_description": "Add NPHIES Assistant to your home screen for quick access.",
+  "pwa_install_now": "Install",
+  "pwa_install_dismiss": "Not Now",
+  "pwa_offline_mode": "You're offline. Some features may be limited.",
+  "skip_to_main": "Skip to main content",
+  "skip_to_navigation": "Skip to navigation",
+  "main_navigation": "Main navigation",
+  "main_content_area": "Main content area"
 }
