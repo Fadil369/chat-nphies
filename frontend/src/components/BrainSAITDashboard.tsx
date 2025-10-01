@@ -83,8 +83,23 @@ export const BrainSAITDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadHospitals();
-    loadAIModels();
+    const loadInitialData = async () => {
+      // Set a timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        setError('Connection timeout - MongoDB database may not be configured');
+        setLoading(false);
+      }, 10000); // 10 second timeout
+
+      try {
+        await Promise.all([loadHospitals(), loadAIModels()]);
+        clearTimeout(timeoutId);
+      } catch (err) {
+        clearTimeout(timeoutId);
+        console.error('Failed to load initial data:', err);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -111,7 +126,9 @@ export const BrainSAITDashboard: React.FC = () => {
         setSelectedHospital(data.hospitals[0].hospital_id);
       }
     } catch (err) {
+      console.error('Failed to load hospitals:', err);
       setError(err instanceof Error ? err.message : 'Failed to load hospitals');
+      setLoading(false);
     }
   };
 
@@ -123,12 +140,15 @@ export const BrainSAITDashboard: React.FC = () => {
         body: JSON.stringify({ filter: { deployment_status: 'production' } })
       });
       
+      
       if (!response.ok) throw new Error('Failed to load AI models');
       
       const data = await response.json();
       setAIModels(data.ai_models || []);
     } catch (err) {
       console.error('Failed to load AI models:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load AI models');
+      setLoading(false);
     }
   };
 
@@ -146,6 +166,7 @@ export const BrainSAITDashboard: React.FC = () => {
       setHospitalInsights(data.insights);
     } catch (err) {
       console.error('Failed to load hospital insights:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load hospital insights');
     }
   };
 
@@ -163,6 +184,7 @@ export const BrainSAITDashboard: React.FC = () => {
       setPatients(data.patients || []);
     } catch (err) {
       console.error('Failed to load patients:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load patients');
     } finally {
       setLoading(false);
     }
@@ -188,12 +210,90 @@ export const BrainSAITDashboard: React.FC = () => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <h3 className="text-red-800 font-semibold">Database Connection Error</h3>
-        <p className="text-red-600 text-sm mt-1">{error}</p>
-        <p className="text-red-600 text-sm mt-2">
-          Make sure MONGODB_API_KEY is configured in your environment variables.
-        </p>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+        <h3 className="text-red-800 font-semibold">⚠️ BrainSAIT Database Connection Error</h3>
+        <p className="text-red-600 text-sm mt-2">{error}</p>
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+          <p className="text-yellow-800 text-sm font-medium">Likely Cause:</p>
+          <p className="text-yellow-700 text-sm mt-1">
+            MongoDB environment variables are not configured in Cloudflare Pages.
+          </p>
+        </div>
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded">
+          <p className="text-blue-800 text-sm font-medium">Required Environment Variables:</p>
+          <code className="text-blue-700 text-xs block mt-1">
+            MONGODB_API_KEY=your_mongodb_data_api_key_here<br/>
+            MONGODB_PUBLIC_KEY=your_mongodb_public_key_here<br/>
+            MONGODB_API_URL=https://data.mongodb-api.com/app/data-kmxgp/endpoint/data/v1
+          </code>
+        </div>
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              loadHospitals();
+              loadAIModels();
+            }}
+            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+          >
+            Retry Connection
+          </button>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(false);
+              // Load mock data for demonstration
+              setHospitals([
+                {
+                  hospital_id: 'DEMO_001',
+                  name: 'Demo Hospital - Riyadh Medical Center',
+                  location: { city: 'Riyadh', region: 'Central' },
+                  digital_maturity_level: 85,
+                  vision2030_compliance: {
+                    digital_health_adoption: 78,
+                    ai_integration_level: 65
+                  },
+                  nphies_integration: {
+                    enabled: true,
+                    certification_status: 'certified'
+                  }
+                }
+              ]);
+              setSelectedHospital('DEMO_001');
+              setHospitalInsights({
+                hospital: null,
+                patients_count: 1250,
+                ai_models_deployed: 4,
+                vision2030_score: 78,
+                top_specializations: ['Cardiology', 'Oncology', 'Emergency'],
+                digital_maturity: 85
+              });
+              setAIModels([
+                {
+                  model_id: 'AI_001',
+                  name: 'NPHIES Claim Predictor',
+                  healthcare_domain: 'Claims Processing',
+                  deployment_status: 'production',
+                  performance_metrics: {
+                    accuracy: 0.92,
+                    precision: 0.89,
+                    recall: 0.95,
+                    f1_score: 0.92
+                  },
+                  nphies_integration: {
+                    claim_prediction: true,
+                    eligibility_scoring: true,
+                    cost_estimation: false
+                  }
+                }
+              ]);
+            }}
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+          >
+            Load Demo Data
+          </button>
+        </div>
       </div>
     );
   }
