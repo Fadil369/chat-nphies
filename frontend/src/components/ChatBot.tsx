@@ -426,13 +426,16 @@ export function ChatBot() {
         data = generateMockResponse(history[history.length - 1]?.text || '', context, t);
       }
 
-      if (!resp.ok && resp.status !== 500) { // Allow 500 to fall through to mock
+      if (!resp.ok) {
         const errorMsg = data?.message || data?.error?.message || `HTTP ${resp.status}: ${resp.statusText}`;
-        if (resp.status === 401 || resp.status === 403) {
-          // Use mock response for auth errors
-          data = generateMockResponse(history[history.length - 1]?.text || '', context, t);
-        } else {
-          throw new Error(errorMsg);
+        console.warn(`Claude API error (${resp.status}):`, errorMsg);
+        
+        // Always use mock response for any API error to provide helpful content
+        data = generateMockResponse(history[history.length - 1]?.text || '', context, t);
+        
+        // Add a subtle indicator that we're using offline knowledge
+        if (data?.mockResponse) {
+          data.mockResponse += "\n\n*🔄 Response generated using local healthcare knowledge*";
         }
       }
 
